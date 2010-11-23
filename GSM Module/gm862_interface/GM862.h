@@ -15,6 +15,7 @@
 #define STATE_INITIALIZED 2
 #define STATE_REGISTERED 4
 #define STATE_POSFIX 8
+#define AMOUNT_OF_PHONE_NUMBERS 10
 
 typedef struct {
 	int lat_deg;
@@ -28,7 +29,7 @@ typedef struct {
 class GM862 {
 
  public:
-  GM862(HardwareSerial *modemPort, byte onOffPin, byte commandPin);
+  GM862(HardwareSerial *modemPort, byte onOffPin, String *phoneNumber, String *commands, String *responses, int numOfCommands);
 
   void init();
   boolean getStatus();
@@ -58,7 +59,7 @@ class GM862 {
   Position requestGPS();
   Position getLastPosition();
   void clearMessages();
-  void parseMessage(char *buf);
+  int parseMessage(char *buf);
 
  private:
   void switchModem();
@@ -74,12 +75,19 @@ class GM862 {
   void parseDegrees(char *str, int *degree, long *minutes);
   char *readToken(char *str, char *buf, char delimiter);
   char *skip(char *str, char match);
+  int executeCommand(String command);
+  int extractData(char *buf2);
+  String returnMessage(int state);
+  boolean verifyPhoneNumber(String number);
 
   byte state;
   byte onOffPin;
   HardwareSerial *modem;
   Position actPosition;
-  byte commandPin;
+  String *validPhoneNumbers;
+  String *commands;
+  String *responses;
+  int numOfCommands;
 
 };
 

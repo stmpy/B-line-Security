@@ -9,15 +9,25 @@
 #include <avr/pgmspace.h>
 
 #define BUF_LENGTH 200
+#define AMOUNT_OF_PHONE_NUMBERS 10
+//Define States
+#define START 0 //Start
+#define ARM 1 //ARM the Alarm
+#define DISARM 2 //Disarm the Alarm
+#define Trigger_Alarm 3 //Alarm Triggered
+#define Lock_Doors 4 //Lock Doors
+#define Unlock_Doors 5 //Unlock Doors
 
-GM862::GM862(HardwareSerial *modemPort, byte onOffPin, byte commandPin) {
+GM862::GM862(HardwareSerial *modemPort, byte onOffPin, String *phoneNumbers, String *commands, String *responses, int numOfCommands) {
   state = STATE_NONE;
   modem = modemPort;
   modem->begin(19200);
   this->onOffPin = onOffPin;
-  this->commandPin = commandPin;
+  this->validPhoneNumbers = phoneNumbers;
+  this->commands = commands;
+  this->responses = responses;
+  this->numOfCommands = numOfCommands;
   pinMode(onOffPin, OUTPUT);
-  pinMode(commandPin, OUTPUT);
 }
 boolean GM862::isOn() {
   return (state & STATE_ON);
@@ -67,11 +77,12 @@ byte GM862::requestModem(const char *command, uint16_t timeout, boolean check, c
     if (check) {                        // if a check is desired
       found = strstr(buf, "\r\nOK\r\n");
       if (found) {
-	Serial.println("->ok");
+//	Serial.println("->ok");
       }
       else {
-	Serial.print("->not ok: ");
-	Serial.println(buf);  
+//	Serial.print("->not ok: ");
+//	Serial.println(buf); 
+        count = 0;
       } 
     }
     else {
@@ -90,12 +101,13 @@ byte GM862::getsTimeout(char *buf, uint16_t timeout) {
   char c;
   *buf = 0;
   timeIsOut = millis() + timeout;
+  //Serial.println("getsTimout timeout: " + String(timeout));
   while (timeIsOut > millis() && count < (BUF_LENGTH - 1)) {  
     if (modem->available()) {
       count++;
       c = modem->read();
       *buf++ = c;
-      //timeIsOut = millis() + timeout;
+      timeIsOut = millis() + timeout;
     }
   }
   if (count != 0) {
@@ -105,6 +117,15 @@ byte GM862::getsTimeout(char *buf, uint16_t timeout) {
   return count;
 }
 void GM862::init() {
+  delay(1000);
+  getStatus();                    // identify if modem is turned on or not
+  Serial.println("GM862 MC Control");
+  // test to see if modem is on
+  if(!isOn()){
+    Serial.println("Turning on Modem ...");
+    switchOn();                   // switch the modem on
+    delay(4000);                        // wait for the modem to boot
+  }
   Serial.println("initializing modem ...");
   char buf[BUF_LENGTH];
   requestModem("AT", 1000, true, buf);
@@ -113,13 +134,23 @@ void GM862::init() {
   requestModem("AT+CNMI=2,1,2,1,0", 1000, true, buf);
   requestModem("AT+CMGF=1", 1000, true, buf);             // send text sms
   state |= STATE_INITIALIZED;
-  Serial.println("done");
+  checkNetwork();             // check the network availability
+//  modem.version();                    // request modem version info
+/*  while (!modem.isRegistered()) {
+    delay(1000);
+    modem.checkNetwork();             // check the network availability
+  }*/
+  Serial.println("Modem is ready");
 }
 boolean GM862::getStatus(){
   char buf[BUF_LENGTH];
+  byte r = 0;
   if(state == STATE_NONE){
-    if(requestModem("AT",1000,true,buf))
-    state |= STATE_ON;
+  r = requestModem("AT",1000,true,buf);
+//  Serial.println("r: " + r);
+    if(r){
+        state |= STATE_ON;
+    }
   }
   return state;
 }
@@ -137,7 +168,7 @@ void GM862::sendSMS(String number, String message) {
   char cmdbuf[30];
   String Scmdbuf = "AT+CMGS=\"";
   Serial.println("sending SMS ...");
-//  Serial.println("number: "+number);
+  Serial.println("number: "+number+" and message: "+message);
   Scmdbuf.concat(number + "\"");
   Scmdbuf.toCharArray(cmdbuf,30);
   requestModem(cmdbuf, 1000, false, buf);
@@ -153,93 +184,27 @@ byte GM862::checkForMessage(char *buf) {
 void GM862::clearMessages(){
   deleteMessage("0");
 }
-void GM862::parseMessage(char *buf){
+int GM862::parseMessage(char *buf){
     char buf2[BUF_LENGTH];
+    int state;
     String loc;
-    String phoneNumber;
-    String date;
-    String command;
-    String tempS;
-    String message = "Command Confirmed";
-    char * temp;
-    char * temp2;
-    int counter = 0;
-    int counter2 = 0;
 //    Serial.print("pm -->");
 //    Serial.println(buf);
     if(strstr(buf,"CMTI")){ // incoming txt message
         Serial.println("getting message ... ");
         loc = strstr(buf,",")+1;
         loc = loc.trim();
-//        Serial.print("loc: ");
-//        Serial.println(loc);
+//        Serial.println("mem loc: " + loc);
         requestModem("AT+CMGL=\"REC UNREAD\"",1000,false,buf2); // list message
-	while(!strstr(buf2,"+CMGL:")){	// wait until the txt message response is sent.
-	  getsTimeout(buf2,1000);
-	}
+	   while(!strstr(buf2,"+CMGL:")){	// wait until the txt message response is sent.
+	       getsTimeout(buf2,100);
+	   }
 //      Serial.print(buf2);
-	  temp = strtok(buf2,",");
-	while(temp != NULL){
-	  // 3 is the phone number
-      tempS = temp;
-	  switch(counter){
-	    case 2:
-//	      Serial.println("phone number (pre): " + tempS);
-//	      Serial.println("length: " + tempS.length());
-	      phoneNumber = getPhone(tempS);
-//	      Serial.println("phone number: " + phoneNumber);
-	      break;
-	    case 4:
-//	      Serial.println("ymd: " + tempS);
-//	      Serial.println("current date: " + year() +"/"+ month() +"/"+ day());
-	      date = tempS;
-	      break;
-	    case 5:
-//	      Serial.println("time: " + tempS);
-//	      Serial.println("current date: " + hour() +":"+ minute() +":"+ second() + "-24");
-          temp2 = strtok(temp,"\"");
-          while(temp2 != NULL){
-            tempS = temp2;
-            tempS = tempS.trim();
-//            Serial.println("inner temp: " + tempS);
-            switch(counter2){
-                case 1:
-                    command = getCommand(tempS);
-                    break;
-                default:
-//                    Serial.println("don't care: " + tempS);
-                    break;
-            }
-            counter2++;
-            temp2 = strtok(NULL,"\"");
-          }
-	      date += tempS;
-	      break;
-	    default:
-	      //Serial.println("don't care: " + tempS);
-	      break;
-	  }
-	  counter++;
-//	  Serial.println("temp: " + tempS);
-//	  Serial.println("counter: " + counter);
-	  temp = strtok(NULL,",");
-	}
-//  Serial.println("command: '" + command + "'\nlength: " + command.length());
-	// parse command and execute
-	if(command.equalsIgnoreCase("on")){
-	   Serial.println("ON received");
-	   digitalWrite(commandPin, HIGH);
-	} else if(command.equalsIgnoreCase("off")){
-	   Serial.println("OFF received");
-	   digitalWrite(commandPin, LOW);
-	} else {
-	   message = "Command not recognized";
-	}
-	// verify proper phone number
-	sendSMS(phoneNumber, message);
-	delay(4500);
+    state = extractData(buf2);
+    delay(4500);
     deleteMessage(loc);
-  }
+    }
+  return state;
 }
 String GM862::getCommand(String s){
     int location = s.lastIndexOf("OK");
@@ -257,6 +222,127 @@ String GM862::getPhone(String phone){
 }
 String GM862::getDate(String date){
   return "";
+}
+int GM862::extractData(char *buf2){
+  String phoneNumber;
+  String date;
+  String command;
+  String tempS;
+  int counter = 0;
+  int counter2 = 0;
+  int state = -1;
+  char * temp2;
+  char * temp = strtok(buf2,",");
+  while(temp != NULL){
+    tempS = temp;
+    switch(counter){
+      case 2:    // phone number
+//	      Serial.println("phone number (pre): " + tempS);
+//	      Serial.println("length: " + tempS.length());
+	phoneNumber = getPhone(tempS);
+//	      Serial.println("phone number: " + phoneNumber);
+	break;
+      case 4:    // year month and day
+//	      Serial.println("ymd: " + tempS);
+//	      Serial.println("current date: " + year() +"/"+ month() +"/"+ day());
+	date = tempS;
+	break;
+      case 5:    // time
+//	      Serial.println("time: " + tempS);
+//	      Serial.println("current date: " + hour() +":"+ minute() +":"+ second() + "-24");
+	temp2 = strtok(temp,"\"");
+	while(temp2 != NULL){
+	  tempS = temp2;
+	  tempS = tempS.trim();
+//            Serial.println("inner temp: " + tempS);
+	  switch(counter2){
+	    case 1:
+	      command = getCommand(tempS);
+	      break;
+	    default:
+//                    Serial.println("don't care: " + tempS);
+	      break;
+	  }
+	  counter2++;
+	  temp2 = strtok(NULL,"\"");
+	}
+	date += tempS;
+	break;
+      default:
+//        Serial.println("don't care: " + tempS);
+	break;
+    }
+    counter++;
+//	  Serial.println("temp: " + tempS);
+//	  Serial.println("counter: " + counter);
+    temp = strtok(NULL,",");
+  }
+  if(verifyPhoneNumber(phoneNumber)){
+    state = executeCommand(command);
+    sendSMS(phoneNumber, returnMessage(state));
+  } else {
+    sendSMS(phoneNumber, "This phone number is not authorized.");
+  }
+  return state;
+}
+int GM862::executeCommand(String command){
+    //  Serial.println("command: '" + command + "'\nlength: " + command.length());
+	// parse command and execute
+	int state = -1;
+    if(command.equalsIgnoreCase("reboot")){
+	  switchOff();
+	  delay(8000);
+	  switchOn();
+	  delay(16000);
+	  init();
+	  state = 97;
+	} else if(command.equalsIgnoreCase("delete messages")){
+	  deleteMessage("0");
+	  state = 96;
+	} else if(command.equalsIgnoreCase("help")){
+	  state = 95;
+	}
+	for(int i=0;i<=numOfCommands;i++){
+//	   Serial.println("'" + command + "' ?? '" + commands[i] + "'");
+	   if(command.equalsIgnoreCase(commands[i])){
+	       state = i;
+	       break;
+	   }
+	}
+    return state;
+}
+String GM862::returnMessage(int state){
+  String message = "Command not recognized";
+  message = responses[state];
+  switch(state){
+    case 95:
+      message = "Commands:\nON -- turn the LED on\nOFF -- turn the LED off\nREBOOT -- reboot the modem\nDELETE MESSAGES -- delete all read messages\nHELP -- prints help";
+      break;
+    case 96:
+      message = "Messages deleted.";
+      break;
+    case 97:
+      message = "modem has successfully rebooted";
+      break;
+    case 98:
+      message = "LED turned OFF";
+      break;
+    case 99:
+      message = "LED turned ON";
+      break;
+  }
+  return message;
+}
+boolean GM862::verifyPhoneNumber(String number){
+//    Serial.println("checking phone number: " + number);
+    for(int i=0;i<AMOUNT_OF_PHONE_NUMBERS;i++){
+//        Serial.println("checking number: " + this->validPhoneNumbers[i]);
+        if(this->validPhoneNumbers[i].equals(number)){
+//            Serial.println("found a match");
+            return true;
+        }
+    }
+    return false;
 }
 void GM862::deleteMessage(String index){
     char buf[BUF_LENGTH];
