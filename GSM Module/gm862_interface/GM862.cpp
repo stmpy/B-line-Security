@@ -313,7 +313,8 @@ int GM862::executeCommand(String command){
 }
 String GM862::returnMessage(int state){
   String message = "Command not recognized";
-  message = responses[state];
+  if(state >= 0)
+      message = responses[state];
   switch(state){
     case 95:
       message = "Commands:\nON -- turn the LED on\nOFF -- turn the LED off\nREBOOT -- reboot the modem\nDELETE MESSAGES -- delete all read messages\nHELP -- prints help";

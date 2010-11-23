@@ -26,7 +26,7 @@ String responses[NUMBER_OF_COMMANDS+1] = {"Starting the car",
                             "Alarm Triggered",
                             "Doors Locked",
                             "Doors Unlocked"};
-String phoneNumbers[AMOUNT_OF_PHONE_NUMBERS] = {"8012090098","8019870046"};
+String phoneNumbers[AMOUNT_OF_PHONE_NUMBERS] = {"##########","##########"};
 
 
 // Create Modem Object
