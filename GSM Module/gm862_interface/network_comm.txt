@@ -1,0 +1,20 @@
+Develop serial commands to send and receive communcation from a website
+
+// Initial configuration ... always run
+AT
+AT+IPR=19200
+AT+CMEE=2
+AT+CNMI=2,1,2,1,0
+AT+CMGF=1
+
+// initialize GPRS
+AT+CGDCONT=1,"IP","internet","0.0.0.0",0,0 // page 192
+AT#USERID=""
+AT#PASSW=""
+
+// enable GPRS
+AT#GPRS=1
+
+// disable GPRS
+AT#GPRS=0
+
