@@ -198,7 +198,7 @@ void GM862::initGPRS() {
 void GM862::enableGPRS() {
   char buf[BUF_LENGTH];
   Serial.println("switching GPRS on ...");
-  requestModem("AT#GPRS=1", 1000, false, buf);
+  requestModem("AT#GPRS=1", 3000, false, buf);
   Serial.println("done");
 }
 

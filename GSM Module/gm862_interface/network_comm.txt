@@ -18,3 +18,43 @@ AT#GPRS=1
 // disable GPRS
 AT#GPRS=0
 
+// open internet
+// start on page 33 of 90 of the Easy GPRS User Guide
+AT#SD = 1,0,80,"tj-dev.com"
++++ // suspends connection
+STRING: 1 // shows that data is waiting on the conneciton
+AT#S0 = 1 // resumes connection
+
+
+
+Now we can proceed with contacting the server with AT command for socket dial:
+
+AT#SD=1,0,80,”www.telit.com”,0,0
+
+When we receive the CONNECT indication, then we are exchanging data with the HTTP server program on the remote host machine.
+Now following the HTTP protocol we ask for the homepage by sending the following lines on the serial line: 
+
+GET / HTTP/1.1<cr><lf> 
+Host: www.telit.com<cr><lf>
+Connection: keep-alive<cr><lf> <cr><lf>
+
+As a response to our query, the HTTP server will reply with the HTML code of the homepage and some debugging responses that we will see directly on the serial line:
+
+HTTP/1.1 200 OK 
+Date: Thu, 06 2003 10:21:58 GMT 
+Server: Apache/1.3.27 (Unix) 
+Last-Modified: Thu, 06 2003 10:21:58 GMT 
+Content-Type: text/html 
+Connection: close
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 FINAL//EN">
+<HTML>
+... here is all the HTML code of the page..
+</HTML>
+
+<pause>+++<pause>
+OK
+AT#SH=1
+OK
+
+The Telit module is now back to command mode and the socket is closed.
