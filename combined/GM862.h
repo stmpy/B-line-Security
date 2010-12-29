@@ -46,6 +46,7 @@ class GM862 {
   void sendSMS(String snumber, String message);
   byte checkForMessage(char *buf);
   void version();
+  void sendCoordinates();
 
   void initGPRS();
   void enableGPRS();

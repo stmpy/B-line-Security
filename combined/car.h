@@ -27,14 +27,17 @@
 class Car {
     public:
         Car(int *i,int *o);
+        
         void unlock();
         void lock();
         void alarm();
-        void check_ignition();
-        void check_doors();
-        void check_unlock();
-        void check_lock();
-        void check
+        void clear_alarm();
+        // need to return a value (HIGH, LOW)
+        byte check_ignition();
+        byte check_doors();
+        byte check_unlock();
+        byte check_lock();
+        
     private:
         void morse_code(byte codes[],int duration[],int length,bool horn);
         // inputs

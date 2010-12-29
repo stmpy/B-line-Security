@@ -76,31 +76,26 @@ void Car::alarm(){
   morse_code(code,s_dur,length,true);
 }
 
-void Car::check_ignition(){
+byte Car::check_ignition(){
  ///////////////// [IGNITION CHECK] ////////////////
-  if(digitalRead(this->ignition_check) == HIGH) {     
-    digitalWrite(this->ignition_control,HIGH);
-  } else {     
-    digitalWrite(this->ignition_control,LOW);
-  } 
+  return digitalRead(this->ignition_check);
 }
 
-void Car::check_doors(){
+byte Car::check_doors(){
   ///////////////// [DOOR CHECK] ////////////////
-  if(digitalRead(this->door_check) == HIGH)
-  {     
-    digitalWrite(this->door_control,HIGH);  //Is this open or closed?
-  } else {     
-    digitalWrite(this->door_control,LOW);
-  }
+  return digitalRead(this->door_check);
 }
 
-void Car::check_unlock(){
-
+byte Car::check_unlock(){
+    return digitalRead(this->unlock_check);
 }
 
-void Car::check_lock(){
+byte Car::check_lock(){
+    return digitalRead(this->lock_check);
+}
 
+void Car::clear_alarm(){
+       
 }
 
 void Car::morse_code(byte *code,int *duration,int length,bool horn){

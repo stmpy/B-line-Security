@@ -450,6 +450,9 @@ char *GM862::receive(char *buf) {
   getsTimeout(buf, 1000);
   return buf;
 }
+void GM862::sendCoordinates(){
+  
+}
 void GM862::warmStartGPS() {
   char buf[BUF_LENGTH];
   Serial.println("warm start GPS ...");

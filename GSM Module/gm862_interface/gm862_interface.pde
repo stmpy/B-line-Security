@@ -14,13 +14,14 @@ byte onPin = 52;                      // pin to toggle the modem's on/off
 int state = -1;
 char cmd;                            // command read from terminal
 char buf[BUF_LENGTH];                // buffer used to capture messages from the modem
-String commands[NUMBER_OF_COMMANDS+1] = {"start",
+String commands[NUMBER_OF_COMMANDS+1] = {"initialize",
                             "arm",
                             "disarm",
                             "trigger alarm",
                             "lock",
-                            "unlock"};
-String responses[NUMBER_OF_COMMANDS+1] = {"Starting the car",
+                            "unlock",
+                            "clear alarm"};
+String responses[NUMBER_OF_COMMANDS+1] = {"Initialized!!",
                             "System Armed",
                             "System Disarmed",
                             "Alarm Triggered",
