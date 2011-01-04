@@ -21,7 +21,7 @@ Car::Car(int *i,int *o){
     int blinkTemp_dur[] = {200,200};
     
     memcpy(this->blink,blinkTemp,2);
-    memcpy(this->blink_dur,blinkTemp_dur,2);
+    memcpy(this->blink_dur,blinkTemp_dur,4);
     
     this->unlock_control = o[0];
     this->lock_control = o[1];
@@ -55,7 +55,7 @@ void Car::unlock(){
 void Car::lock(){
     ///////////////// [LOCK] //////////////
     //Set both left and right doors to lock
-    digitalWrite(this->lock_control,HIGH);      //LOCK!!!
+    digitalWrite(this->lock_control,HIGH);     delay(100); //LOCK!!!
     digitalWrite(this->lock_control,LOW);      delay(100);
     digitalWrite(this->lock_control,HIGH);     delay(100);
     // lights and horn
@@ -99,9 +99,20 @@ void Car::clear_alarm(){
 }
 
 void Car::morse_code(byte *code,int *duration,int length,bool horn){
+    
     for(int i=0;i<length;i++){
-        if(horn){digitalWrite(this->horn_control, code[i]);}
+/*        if(code[i] == HIGH){
+            Serial.print("HIGH");
+        } else if(code[i] == LOW){
+            Serial.print("LOW");
+        } else {
+            Serial.print("Unknown state");
+        }
+        Serial.println();
+        Serial.print("dur: ");
+        Serial.println(duration[i]);
+*/        if(horn){digitalWrite(this->horn_control, code[i]);}
         digitalWrite(this->light_control, code[i]);
-        delay(duration[i]);
+        delay(duration[i]*2);
     }
 }
