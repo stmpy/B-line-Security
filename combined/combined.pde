@@ -25,24 +25,24 @@
  State Trigger_Alarm = State(AlarmTrigger);              //Alarm Triggered, 3
  State Lock_Doors = State(DoorLock_Function);            //Lock Doors, 4
  State Unlock_Doors = State(DoorUnLock_Function);        //Unlock Doors, 5
-//  State CLEAR = State(ClearAlarm_Function);            //Clear Alarm, 6
+ State CLEAR = State(ClearAlarm_Function);            //Clear Alarm, 6
 
 //Initialize variables & Pin Assignments
 // OUTPUTS -- these will never change within the program
 #define NUM_OF_OUTPUTS 4
 #define UNLOCK_CONTROL 23//22  // door_unlock_R
 #define LOCK_CONTROL 25//23    // door_lock_R
-#define Arm_Control 27//51      //
+//#define Arm_Control 27//51      //
 #define LIGHT_CONTROL 29//28   // light
 #define HORN_CONTROL 31//30    // horn
-#define ARMED 52            //Status LED armed or not
+#define ARMED 27            //Status LED armed or not
 
 // INPUTS -- these will never change within the program
 #define NUM_OF_INPUTS 4
-#define UNLOCK_CHECK 5//2     // SW_door_unlock_R --From Clinton, Unlock Switch when LOW  Duplicate instatiation
-#define LOCK_CHECK 6//3       // SW_door_lock_R
-#define DOOR_CHECK 8//5       // door_check
-#define IGNITION_CHECK 7//4   // ignition_check
+#define UNLOCK_CHECK 47//2     // SW_door_unlock_R --From Clinton, Unlock Switch when LOW  Duplicate instatiation
+#define LOCK_CHECK 49//3       // SW_door_lock_R
+#define DOOR_CHECK 53//5       // door_check
+#define IGNITION_CHECK 51//4   // ignition_check
 
 // modem defines
 #define BUF_LENGTH 100
@@ -59,6 +59,7 @@ int val_alarm_trigger=0;           //Initially not triggered
 byte IsArmed = 0;                    //initially disarmed
 byte state = 0;                      //Set start state to case 0
 byte lastState = 0;
+int x_alarm=0;
 
 // Car object variables
 int outputs[NUM_OF_OUTPUTS] = { // need to be in this order
@@ -90,7 +91,7 @@ String responses[NUMBER_OF_COMMANDS+1] = {"Initialized!!",
                             "Doors Locked",
                             "Doors Unlocked",
                             "Alarm Cleared"};
-String phoneNumbers[AMOUNT_OF_PHONE_NUMBERS] = {"##########","##########"};
+String phoneNumbers[AMOUNT_OF_PHONE_NUMBERS] = {"8019870046","##########"};
 // declarations
 Car car = Car(inputs,outputs);
 FSM AlarmStateMachine = FSM(INITIAL);    //Initialize the state machine to the start state
@@ -129,10 +130,8 @@ void setup()
 
 //Program to run
 void loop(){
-  if (modem.checkForMessage(buf)){
-    state = modem.parseMessage(buf);
-  }
-  if (state != lastState) {
+
+//  if (state != lastState) {
     switch (state){
       case 0: AlarmStateMachine.transitionTo(INITIAL); break;       //Start State, initialization
       case 1: AlarmStateMachine.transitionTo(ARM); break;           //ARM the Alarm
@@ -140,10 +139,11 @@ void loop(){
       case 3: AlarmStateMachine.transitionTo(Trigger_Alarm); break; //Alarm Triggered
       case 4: AlarmStateMachine.transitionTo(Lock_Doors); break;    //Lock Doors
       case 5: AlarmStateMachine.transitionTo(Unlock_Doors); break;  //Unlock Doors
-//    case 6: AlarmStateMachine.transitionTo(ClearAlarm_Function); break;  //Clear Alarm-remove noise  
+      case 6: AlarmStateMachine.transitionTo(CLEAR); break;  //Clear Alarm-remove noise  
     }
-  }
+//  }
        AlarmStateMachine.update();
+       state = 0;   // always return to the monitor state;
 }
 
 /***********************************************************************************************
@@ -152,29 +152,26 @@ Default to the monitor state
 ************************************************************************************************/
 
 void Monitor(){
-
-  if (val_ignition_check != digitalRead(IGNITION_CHECK)){
-    if(digitalRead(Arm_Control)==HIGH){
-    digitalWrite(ARMED, HIGH);
-    IsArmed = 1;
+  if (modem.checkForMessage(buf)){
+    state = modem.parseMessage(buf);
+    return;
+  }
+  if (val_ignition_check != car.check_ignition() || val_door_check != car.check_doors()){
+    if(IsArmed){
+//    if(digitalRead(Arm_Control)==HIGH){
+    //digitalWrite(ARMED, HIGH);
+    //IsArmed = 1;
     state = 3;
     return;
     }
   }
-  if (val_door_check != digitalRead(DOOR_CHECK)){
-    if(digitalRead(Arm_Control)==HIGH){
-    digitalWrite(ARMED, HIGH);
-    IsArmed = 1;
-    state = 3;
-    return;
-    }
-  }
-  if (val_SW_door_unlock_R != digitalRead(LOCK_CONTROL)){
-    if (digitalRead(LOCK_CONTROL)==LOW){
+  if (val_SW_door_unlock_R != car.check_lock()/*digitalRead(LOCK_CONTROL)*/){
+    val_SW_door_unlock_R = car.check_lock(); // update
+    if (val_SW_door_unlock_R==LOW/*digitalRead(LOCK_CONTROL)*/){
     state = 5;//unlock
     return;
     }
-    if (digitalRead(LOCK_CONTROL)==HIGH){
+    if (val_SW_door_unlock_R==HIGH /*digitalRead(LOCK_CONTROL)*/){
     state = 4;//lock
     return;
     }
@@ -186,71 +183,89 @@ void Monitor(){
 //    state = 0;                                          //If no changes keep monitoring inputs
 //  }
 
-//  ArmControlStatus
-  if(digitalRead(Arm_Control)==HIGH){
-  digitalWrite(ARMED, HIGH);
-//  Serial.println("Armed");
-  state = 1;}
-  else{digitalWrite(ARMED, LOW);
-//  Serial.println("Disarmed");
-  state = 2;}
+//  ArmControlStatus -- check button status ... 
+//  if(digitalRead(Arm_Control)==HIGH){
+//    if(IsArmed == 1){
+//      return;
+//    }
+//      else{
+//            Serial.println("Armed");
+//            state = 1;}
+//  }
+//  if(digitalRead(Arm_Control)==LOW){
+//    if(IsArmed == 0){
+//      return;
+//    }
+//      else{
+//            Serial.println("Disarmed");
+//            state = 2;}
+//  }
 }
 
 void Arm(){
+  digitalWrite(ARMED, HIGH);
+  car.lock();
   IsArmed = 1;                           //Sets armed status to on
-  state = 0;                             //After arming the alarm, immediately go to monitoring the trigger
+//  state = 0;                             //After arming the alarm, immediately go to monitoring the trigger
 }
 
 void Disarm(){
+  digitalWrite(ARMED, LOW);
+  car.unlock();
   IsArmed = 0;
-  state = 0;
+//  state = 0;
 }
 
 void AlarmTrigger(){    
 //  Serial.println("Alarm has been triggered");
-  if ((digitalRead(DOOR_CHECK) == HIGH or digitalRead(IGNITION_CHECK) == HIGH) and IsArmed == 1){
+//  if ((car.check_doors()/*digitalRead(DOOR_CHECK)*/ == HIGH or car.check_ignition()/*digitalRead(IGNITION_CHECK)*/ == HIGH) and IsArmed == 1){
     //Send GPS data function();             //  Fetch GPS Data
-    int x=0;
-    while(x < 3){
-//      AlarmIsTriggered_Function();            //  Trigger alarm
-      car.alarm();
-      
+        if(x_alarm == 0){
+            modem.sendSMS(phoneNumbers[0], "YOUR ALARM IS GOING OFF!!");
+        }
+        x_alarm++;
+//    while(x < 5){
+        car.alarm();      
 //      Serial.println("Alarm in action");
-      if(digitalRead(Arm_Control) == LOW){    //Kick out of loop if disarmed
-      state = 2;
-      break;
-      break;}                                //  1 minutes for auto time out
-      
-      if(val_alarm_trigger == 0){            //Kick out of loop if cleared
-      break;
-      break;}                          
-    x++;
-
-    }
-  }
+//        if(isArmed == 0/*digitalRead(Arm_Control) == LOW*/){    //Kick out of loop if disarmed
+//            state = 2;
+//            return;
+//            break;
+//        }                                //  1 minutes for auto time out
+//        Serial.println("past car alarm");
+//        if(val_alarm_trigger == 0){            //Kick out of loop if cleared
+//            return;
+//        }
+        if(x_alarm >= 10){
+            state = 6;
+        }
 //Check state against what put it into the trigger
- val_ignition_check = digitalRead(IGNITION_CHECK);
- val_door_check = digitalRead(DOOR_CHECK);
- state = 0; 
- return;
+//        Serial.print("Got here!!!\nstate: ");
+//        Serial.println(state);
+//        state = 0;
+// return;
+//    }
 }
 
 void ClearAlarm_Function(){
   //Turn off the noise, remain tripped
-  car.clear_alarm();
-  //digitalWrite(horn, LOW);     // set the horn off
-  //digitalWrite(light, LOW);    // set the lights off
-  
-  val_alarm_trigger = 0;  //Set the Alarm Trigger off
-  state = 0;
+  //car.clear_alarm();
+//  val_alarm_trigger = 0;  //Set the Alarm Trigger off
+    val_ignition_check = car.check_ignition();//digitalRead(IGNITION_CHECK);
+    val_door_check = car.check_doors();//digitalRead(DOOR_CHECK);
+//    state = 0;
+    x_alarm = 0;
 }
 
 void DoorLock_Function(){
   car.lock();
-  val_SW_door_unlock_R = digitalRead(LOCK_CONTROL);    
+  val_SW_door_unlock_R = digitalRead(LOCK_CONTROL); 
+//  state=0;  
 }
 
 void DoorUnLock_Function(){
   car.unlock();
   val_SW_door_unlock_R = digitalRead(LOCK_CONTROL);
+//  state=0;
 }
+

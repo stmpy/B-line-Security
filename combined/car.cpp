@@ -45,11 +45,11 @@ the case statements.
 void Car::unlock(){
     ///////////////// [UNLOCK] ////////////////
     // Set Headlight and horn to blink and honk twice when the door is unlocked
-    digitalWrite(this->unlock_control, HIGH);                         //door unlock
+    digitalWrite(this->unlock_control, HIGH);     delay(100);         //door unlock
+    digitalWrite(this->unlock_control, LOW);
     morse_code(this->blink,this->blink_dur,BLINK_LENGTH,true);        // blink lights honk horn
     morse_code(this->blink,this->blink_dur,BLINK_LENGTH,false);        // blink lights
     // turn signal off
-    digitalWrite(this->unlock_control, LOW);
 }
 
 void Car::lock(){
@@ -58,10 +58,9 @@ void Car::lock(){
     digitalWrite(this->lock_control,HIGH);     delay(100); //LOCK!!!
     digitalWrite(this->lock_control,LOW);      delay(100);
     digitalWrite(this->lock_control,HIGH);     delay(100);
+    digitalWrite(this->lock_control,LOW);
     // lights and horn
     morse_code(this->blink,this->blink_dur,BLINK_LENGTH,true);
-    //turn signal off
-    digitalWrite(this->lock_control,LOW);
 }
 
 void Car::alarm(){
@@ -95,7 +94,7 @@ byte Car::check_lock(){
 }
 
 void Car::clear_alarm(){
-       
+    
 }
 
 void Car::morse_code(byte *code,int *duration,int length,bool horn){
