@@ -1,0 +1,16 @@
+COMMENTS
+
+For next time ...
+
+SLIDES!!! YAY!!
+
+
+Jan 4th 2011
+Travis
+Add in buttons to arm, disarm the car ...
+
+Clinton
+Update clear alarm functionality
+
+June
+Build little demo car
