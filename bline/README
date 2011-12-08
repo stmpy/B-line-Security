@@ -1,3 +1,11 @@
-There will be more details in this file as the project progresses.
+This was my senior project in 2010 - 2011 and after I finished school I haven't kept up on this project well. I would like to start changing that.  
 
-Currently each piece of the project is developed separately, details pertaining to these parts can be found in their respective folders.
+Details:  This project uses an arduino microcontroller to communicate between a basic digital signal system (we used car electronics for this, but anything can be used)
+and a cellular phone, through a telit M2M cellular module.
+
+Hardware:
+1) Arduino Mega (this is what we used in the project for the multiple serial lines, but a duemilinova or uno would work fine).
+2) Telit GM862-GPS
+
+Software:
+Arduino IDE to load and run the C code onto the arduino

@@ -1,15 +1,19 @@
 /*
-*Program by Clinton Mullins
-    *Alarm code functions by June Cho
-    *Wireless Module code to be included by Travis Jeppson
-*Revision Dates:
-*Aug 18, 2010; Oct 22, 2010    Pin Assignments and moved Alarm Functions to End of File
-*Dec 21, 2010;                 State definitions moved from block diagram to code
+* Derived from code written by Clinton Mullins, Travis Jeppson, June Cho
+* Revision Dates:
+* Aug 18, 2010; Oct 22, 2010    Pin Assignments and moved Alarm Functions to End of File
+* Dec 21, 2010;                 State definitions moved from block diagram to code
 *                              Additional utility functions to process state functions added
 *
-*Dec 23, 2010                  Revised
-*Car Alarm Monitor Rev. 0.3
-*Additional libraries shall be documented with include statements
+* Dec 23, 2010                  Revised
+*
+*
+* Future changes:
+* 1) Integrate XBee module so that the vehicle can detect the owner w/in a specific proximity
+* 2) Change the code of the arduino to use interupts for the digital line communication to the vehicle
+*
+* Car Alarm Monitor Rev. 0.3
+* Additional libraries shall be documented with include statements
 */
 
 #include "WProgram.h"
